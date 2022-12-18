@@ -1,0 +1,116 @@
+---
+title: "615 Final"
+author: "Ziyang Lin"
+date: "2022-12-14"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+library(readr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+library(psych)
+library(shiny)
+library(leaflet)
+library(mapsapi)
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+T2021Q4 <- read_csv("D:/615/final/LRTravelTimesQ4_21.csv")
+T2022Q1 <- read_csv("D:/615/final/2022-Q1_LRTravelTimes.csv")
+T2022Q2 <- read_csv("D:/615/final/2022-Q2_LRTravelTimes.csv")
+T2022Q3 <- read_csv("D:/615/final/2022-Q3_LRTravelTimes.csv")
+stops<-read_csv("D:/615/final/stops.csv")
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+Tdata<-rbind(T2021Q4,T2022Q1,T2022Q2,T2022Q3)
+Tdata$service_date<-as.Date(Tdata$service_date)
+Tdata$month<-month(Tdata$service_date)
+Tdata$week<-week(Tdata$service_date)
+Tdata$weekdays<-weekdays(Tdata$service_date,abbreviate = T)
+
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+#Randomly choose 12 week in one year, 1 each month. Here I cited code from runze pang.
+sample_weeks<-c()
+set.seed(2119)
+for (i in 1:12) {
+  weeks_in_month<-levels(as.factor(Tdata$week[Tdata$month==i]))
+  sample_weeks<-c(sample_weeks,sample(weeks_in_month[2:(length(weeks_in_month)-1)],1))
+}
+
+TweekD<-Tdata[Tdata$week %in% as.numeric(sample_weeks),]
+
+TweekD$trip<-paste0(paste0("From ",TweekD$from_stop_id),paste0(" to ",TweekD$to_stop_id))
+
+TweekD$trip<-as.factor(TweekD$trip)
+```
+
+This dataset describes the travel times between origin and destination pairs on a single line.
+It contains data up to the most recent completed quarter for 2022.
+These travel times are calculated from the departure time at the origin stop to the arrival time at the destination stop.
+We randomly picked one week per month, excluding the first and last seven days in the month.
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+head(TweekD)
+summary(TweekD)
+dim(TweekD)
+```
+
+We first take a look at the first six rows of the dataset.
+Then, the quickly summarize each variable of the dataset.
+After that the dimension of the dataset in terms of number of rows and number of columns is showed.
+Below is the data dictionary:
+
+service_date: Date for which travel times should be returned.
+
+route_id: GTFS-compatible route for which travel times should be returned.
+
+direction_id: GTFS-compatible direction for which travel times should be returned.
+from_stop_id: GTFS-compatible stop representing the origin stop in a pair.
+
+to_stop_id: GTFS-compatible stop representing the destination stop in a pair.
+start_time_sec: The time associated with the departure event of the vehicle from the origin stop of the pair.
+
+end_time_sec: The time associated with the arrival event of the vehicle to the destination stop of the pair.
+
+travel_time_sec: Difference between start_time_sec and end_time_sec.
+The actual travel time between the origin stop and the destination stop, in seconds.
+
+week: random weeks we pick
+
+month: month in a year
+
+weekdays: exactly which weekdays is that day
+
+trip: departure and arrival stop for the trip
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data = TweekD, aes(x=travel_time_sec)) + 
+  geom_histogram(fill="steelblue", color = "black") +
+  ggtitle("Histogram of Travel time")
+  
+
+```
+
+A histogram is created to show the distribution.
+From the plot, we could find out that most of the travel times between stops are less than 2,500 seconds.
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE}
+sapply(TweekD, function(x) sum(is.na(x)))
+```
+
+The total number of missing values in each column of the dataset is counted.
+We could find out that there are zero missing values in each column.
+
+For EDA and shiny, I did the T part. The T part has most completed data for both date and variables. For the rest of services, the data are relatively not completed and there are some variables I don't understand. For this project, I learned things like how to deal with large datasets, apply some of the variables to the maps, using leaflet and google api.
